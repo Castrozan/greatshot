@@ -490,23 +490,35 @@ pub fn build_ui(app: &adw::Application, capture_mode: bool) {
                         Some(path) => match gdk_pixbuf::Pixbuf::from_file(path) {
                             Ok(pixbuf) => {
                                 apply_background_for_timer(pixbuf);
+                                // Restore and maximize window after successful capture
+                                window_for_timer.set_visible(true);
+                                window_for_timer.maximize();
+                                window_for_timer.present();
                             }
                             Err(err) => {
                                 let msg = format!("Failed to load image: {err}");
                                 set_status_for_timer(&msg);
+                                // Still restore window even if image load failed
+                                window_for_timer.set_visible(true);
+                                window_for_timer.present();
                             }
                         },
                         None => {
                             set_status_for_timer("Failed to resolve capture path.");
+                            // Still restore window even if path resolution failed
+                            window_for_timer.set_visible(true);
+                            window_for_timer.present();
                         }
                     }
                 }
                 Err(err) => {
                     let msg = format!("Capture failed: {err}");
                     set_status_for_timer(&msg);
+                    // Restore window even if capture failed
+                    window_for_timer.set_visible(true);
+                    window_for_timer.present();
                 }
             }
-            window_for_timer.present();
         }
         glib::ControlFlow::Continue
     });
