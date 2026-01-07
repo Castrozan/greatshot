@@ -477,6 +477,7 @@ pub fn build_ui(app: &adw::Application, capture_mode: bool) {
     let button_for_timer = capture_button.clone();
     let apply_background_for_timer = apply_background.clone();
     let window_for_timer = window.clone();
+    let drawing_area_for_focus = drawing_area.clone();
 
     glib::timeout_add_local(Duration::from_millis(100), move || {
         while let Ok(result) = receiver.try_recv() {
@@ -494,6 +495,15 @@ pub fn build_ui(app: &adw::Application, capture_mode: bool) {
                                 window_for_timer.set_visible(true);
                                 window_for_timer.maximize();
                                 window_for_timer.present();
+                                // Ensure window gets focus - use a small delay to let the window manager process
+                                let window_for_focus = window_for_timer.clone();
+                                let drawing_area_for_focus_delayed = drawing_area_for_focus.clone();
+                                glib::timeout_add_local_once(Duration::from_millis(150), move || {
+                                    window_for_focus.present();
+                                    // Focus the drawing area to ensure the window gets keyboard focus
+                                    drawing_area_for_focus_delayed.set_focusable(true);
+                                    drawing_area_for_focus_delayed.grab_focus();
+                                });
                             }
                             Err(err) => {
                                 let msg = format!("Failed to load image: {err}");
