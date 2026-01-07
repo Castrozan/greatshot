@@ -63,7 +63,7 @@ fn create_icon(
     image
 }
 
-pub fn build_ui(app: &adw::Application) {
+pub fn build_ui(app: &adw::Application, capture_mode: bool) {
     let runtime = Arc::new(
         tokio::runtime::Runtime::new().expect("Failed to start async runtime"),
     );
@@ -431,6 +431,14 @@ pub fn build_ui(app: &adw::Application) {
 
     window.maximize();
     window.present();
+
+    // If --capture flag is set, trigger the capture button automatically
+    if capture_mode {
+        let capture_button_for_auto = capture_button.clone();
+        glib::timeout_add_local_once(Duration::from_millis(300), move || {
+            capture_button_for_auto.activate();
+        });
+    }
 
     let zoom_updating = Rc::new(Cell::new(false));
     let fit_updating = Rc::new(Cell::new(false));
