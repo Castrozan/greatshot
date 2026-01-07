@@ -967,7 +967,7 @@ pub fn build_ui(app: &adw::Application, capture_mode: bool) {
             }
             glib::Propagation::Proceed
         });
-        window.add_controller(&key_controller);
+        window.add_controller(key_controller);
     }
 
     {
