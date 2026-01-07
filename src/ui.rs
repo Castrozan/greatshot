@@ -478,6 +478,7 @@ pub fn build_ui(app: &adw::Application, capture_mode: bool) {
     let apply_background_for_timer = apply_background.clone();
     let window_for_timer = window.clone();
     let drawing_area_for_focus = drawing_area.clone();
+    let app_for_activate = app.clone();
 
     glib::timeout_add_local(Duration::from_millis(100), move || {
         while let Ok(result) = receiver.try_recv() {
@@ -495,14 +496,30 @@ pub fn build_ui(app: &adw::Application, capture_mode: bool) {
                                 window_for_timer.set_visible(true);
                                 window_for_timer.maximize();
                                 window_for_timer.present();
-                                // Ensure window gets focus - use a small delay to let the window manager process
+                                
+                                // Use application activate to ensure window gets focus
+                                // This is more reliable on GNOME Wayland
+                                let app_for_activate_delayed = app_for_activate.clone();
                                 let window_for_focus = window_for_timer.clone();
                                 let drawing_area_for_focus_delayed = drawing_area_for_focus.clone();
-                                glib::timeout_add_local_once(Duration::from_millis(150), move || {
+                                
+                                // Immediate: present window
+                                window_for_timer.present();
+                                
+                                // After 100ms: activate application and present again
+                                glib::timeout_add_local_once(Duration::from_millis(100), move || {
+                                    app_for_activate_delayed.activate();
                                     window_for_focus.present();
-                                    // Focus the drawing area to ensure the window gets keyboard focus
                                     drawing_area_for_focus_delayed.set_focusable(true);
                                     drawing_area_for_focus_delayed.grab_focus();
+                                });
+                                
+                                // After 300ms: one more attempt
+                                let window_for_focus2 = window_for_timer.clone();
+                                let app_for_activate2 = app_for_activate.clone();
+                                glib::timeout_add_local_once(Duration::from_millis(300), move || {
+                                    app_for_activate2.activate();
+                                    window_for_focus2.present();
                                 });
                             }
                             Err(err) => {
