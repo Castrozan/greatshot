@@ -931,22 +931,43 @@ pub fn build_ui(app: &adw::Application, capture_mode: bool) {
     }
 
     {
-        let state = state.clone();
-        let set_status = set_status.clone();
+        let state_for_copy = state.clone();
+        let set_status_for_copy = set_status.clone();
+        let copy_func = {
+            let state = state_for_copy.clone();
+            let set_status = set_status_for_copy.clone();
+            Rc::new(move || {
+                let state = state.borrow();
+                let Some(pixbuf) = editor::render_to_pixbuf(&state) else {
+                    set_status("Nothing to copy yet.");
+                    return;
+                };
+                let texture = gdk::Texture::for_pixbuf(&pixbuf);
+                if let Some(display) = gdk::Display::default() {
+                    display.clipboard().set_texture(&texture);
+                    set_status("Copied to clipboard.");
+                } else {
+                    set_status("Clipboard unavailable.");
+                }
+            })
+        };
+        
+        let copy_func_for_button = copy_func.clone();
         copy_button.connect_clicked(move |_| {
-            let state = state.borrow();
-            let Some(pixbuf) = editor::render_to_pixbuf(&state) else {
-                set_status("Nothing to copy yet.");
-                return;
-            };
-            let texture = gdk::Texture::for_pixbuf(&pixbuf);
-            if let Some(display) = gdk::Display::default() {
-                display.clipboard().set_texture(&texture);
-                set_status("Copied to clipboard.");
-            } else {
-                set_status("Clipboard unavailable.");
-            }
+            copy_func_for_button();
         });
+        
+        // Add Ctrl+C keyboard shortcut for copy
+        let copy_func_for_shortcut = copy_func.clone();
+        let key_controller = gtk::EventControllerKey::new();
+        key_controller.connect_key_pressed(move |_, keyval, _keycode, modifiers| {
+            if keyval == gdk::keys::constants::c && modifiers.contains(gdk::ModifierType::CONTROL_MASK) {
+                copy_func_for_shortcut();
+                return glib::Propagation::Stop;
+            }
+            glib::Propagation::Proceed
+        });
+        window.add_controller(&key_controller);
     }
 
     {
