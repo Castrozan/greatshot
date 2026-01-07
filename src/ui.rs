@@ -961,7 +961,8 @@ pub fn build_ui(app: &adw::Application, capture_mode: bool) {
         let copy_func_for_shortcut = copy_func.clone();
         let key_controller = gtk::EventControllerKey::new();
         key_controller.connect_key_pressed(move |_, keyval, _keycode, modifiers| {
-            if keyval == gdk::keys::constants::c && modifiers.contains(gdk::ModifierType::CONTROL_MASK) {
+            // Check for Ctrl+C: keyval for 'c' is 99 (Unicode/ASCII code point)
+            if keyval == 99 && modifiers.contains(gdk::ModifierType::CONTROL_MASK) {
                 copy_func_for_shortcut();
                 return glib::Propagation::Stop;
             }
